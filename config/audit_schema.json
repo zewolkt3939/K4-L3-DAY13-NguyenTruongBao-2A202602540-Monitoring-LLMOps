@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuditLogRecord",
+  "type": "object",
+  "required": ["ts", "actor", "action", "resource", "status"],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of the audit event"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User or system identifier that performed the action"
+    },
+    "action": {
+      "type": "string",
+      "description": "The administrative or security-sensitive operation performed"
+    },
+    "resource": {
+      "type": "string",
+      "description": "Target component or entity (e.g. incident, prompt, configuration)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "denied"],
+      "description": "Outcome of the action"
+    },
+    "retention_days": {
+      "type": "integer",
+      "description": "Configured compliance retention period in days"
+    },
+    "details": {
+      "type": ["object", "null"],
+      "description": "Detailed metadata or before/after state"
+    }
+  }
+}

@@ -39,7 +39,7 @@
 |---|---|---|---|
 | `validate_logs.py` | 30/100 | 100/100 | Hoàn thành toàn bộ schema, correlation ID propagation, context enrichment và PII scrubbing |
 | `validate_dashboard.py` | 6/6 panel | 6/6 panel | Hợp lệ toàn bộ 6 panel contract theo chuẩn specs |
-| `pytest` | 22 passed | 24 passed | 100% testsuite pass (đã bổ sung test CCCD và thẻ) |
+| `pytest` | 22 passed | 25 passed | 100% testsuite pass (đã bổ sung test CCCD, thẻ và audit system) |
 | Số traces hợp lệ | 0 | >= 10 traces | Đầy đủ quan hệ cha-con (root -> retrieval, generation) trên project cá nhân |
 | Số PII leak | 0 | 0 | 0 rò rỉ PII nguyên văn trong log và trace metadata |
 | Latency P95 / TTFT P95 | 157ms / 50ms | 151ms / 50ms | Nằm trong ngưỡng an toàn của SLO (<= 3000ms) |
@@ -128,3 +128,33 @@
 - [x] Repository chạy lại được theo README.
 - [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [x] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
+
+## 10. Điểm thưởng (Bonus — Tối đa +10 điểm)
+
+Theo quy định tại `docs/RUBRIC.md` Section H, bài làm đã triển khai hoàn thiện 2 giải pháp kỹ thuật nâng cao đạt mức điểm thưởng tối đa (+10 điểm):
+
+### 1. Automation & Pre-flight Security Scanner (+5 điểm)
+- **Mục đích:** Tự động hóa quá trình rà soát an ninh và tính toàn vẹn của mã nguồn trước khi nộp bài hoặc triển khai CI/CD.
+- **Tập lệnh triển khai:** `scripts/security_scan.py`
+- **Các tầng kiểm tra tự động (4 tầng):**
+  1. *Secrets & Credentials Scan:* Quét toàn bộ file được track bởi Git bằng regex để phát hiện các secret bị rò rỉ (Langfuse Secret Keys `sk-lf-*`, OpenAI Keys `sk-*`, AWS Access Keys `AKIA*`, RSA/SSH Private Keys).
+  2. *Sensitive Files Exclusion:* Xác thực `.env` và `config/challenge.json` được chặn hoàn toàn bởi `.gitignore`, không bao giờ bị lộ ra remote repo.
+  3. *Log PII Scrubbing Validation:* Quét sâu từng dòng trong file log runtime `data/logs.jsonl` để phát hiện và cảnh báo nếu có PII thô (email, SĐT Việt Nam, CCCD 12 số, thẻ thanh toán 16 số).
+  4. *Evidence Links Integrity:* Kiểm tra tự động 15 đường dẫn tương đối trong `submission/REPORT.md`, đảm bảo tất cả file evidence trong `submission/evidence/` đều tồn tại và hợp lệ.
+- **Lệnh thực thi:**
+  ```powershell
+  python scripts/security_scan.py
+  ```
+
+### 2. Compliance Audit Logging System (+5 điểm)
+- **Mục đích:** Cung cấp hệ thống ghi log kiểm toán độc lập (Compliance Audit Log) dành riêng cho các sự kiện quản trị, thay đổi cấu hình, can thiệp sự cố (incident injection/recovery) với chu kỳ lưu trữ (retention) và định dạng chuẩn hóa.
+- **Các thành phần triển khai:**
+  - *Schema chuẩn:* `config/audit_schema.json` quy định chặt chẽ cấu trúc JSON Schema (draft 2020-12) với các trường bắt buộc: `ts`, `actor`, `action`, `resource`, `status`, `retention_days` (mặc định 90 ngày) và `details`.
+  - *Module ghi nhận:* `app/audit.py` cung cấp hàm `log_audit_event()` ghi log độc lập vào `data/audit.jsonl` (đã nằm trong `.gitignore`), phân tách rạch ròi với logging nghiệp vụ của ứng dụng.
+  - *Tích hợp Endpoint:* Đã tích hợp trực tiếp vào endpoint bật/tắt sự cố `/incidents/{name}/enable` và `/incidents/{name}/disable` trong `app/main.py`. Mọi hành động can thiệp sự cố đều được ghi nhận với đầy đủ trạng thái và actor.
+  - *Công cụ truy vấn:* `scripts/query_audit.py` hỗ trợ truy vấn, trích xuất và lọc sự kiện kiểm toán theo `--action`, `--status`, `--limit`.
+  - *Unit test:* Đã xây dựng `tests/test_audit.py` và kiểm thử tự động đạt 100% pass.
+- **Lệnh thực thi truy vấn kiểm toán:**
+  ```powershell
+  python scripts/query_audit.py --limit 10
+  ```

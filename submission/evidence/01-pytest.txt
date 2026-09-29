@@ -1,3 +1,3 @@
 PS D:\Ai Thuc chien\All Lab\K4-L3-DAY13-NguyenTruongBao-2A202602540-Monitoring-LLMOps> python -m pytest -q
-........................                                                 [100%]
-24 passed in 2.10s
+.........................                                                [100%]
+25 passed in 1.85s
