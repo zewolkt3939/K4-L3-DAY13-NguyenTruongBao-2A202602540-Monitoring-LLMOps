@@ -1,0 +1,2 @@
+PS D:\Ai Thuc chien\All Lab\K4-L3-DAY13-NguyenTruongBao-2A202602540-Monitoring-LLMOps> python scripts/validate_dashboard.py
+Há»¢P Lá»†: 6/6 panel cÃ³ trong dashboard contract.

@@ -1,0 +1,29 @@
+=== PII REDACTION COMPARISON ===
+
+[RAW INPUT QUERY SENT BY USER]
+{
+  "user_id": "u01",
+  "session_id": "s01",
+  "feature": "qa",
+  "message": "What is your refund policy? My email is student@vinuni.edu.vn, phone 0987654321, CCCD 012345678901, card 4111 1111 1111 1111"
+}
+
+[SANITIZED LOG RECORD IN data/logs.jsonl]
+{
+  "ts": "2026-09-29T08:34:49.701672Z",
+  "level": "info",
+  "service": "api",
+  "event": "request_received",
+  "correlation_id": "req-ed2112e4",
+  "env": "dev",
+  "user_id_hash": "2055254ee30a",
+  "session_id": "s01",
+  "feature": "qa",
+  "model": "claude-sonnet-4-5",
+  "payload": {
+    "message_preview": "What is your refund policy? My email is [REDACTED_EMAIL], phone [REDACTED_PHONE_VN], CCCD [REDACTED_CCCD], card [REDACTED_CREDIT_CARD]"
+  }
+}
+
+=> Result: All PII tokens masked to [REDACTED_*] prior to JSON serialization and disk logging.
+=> Potential PII leaks detected by scripts/validate_logs.py: 0
