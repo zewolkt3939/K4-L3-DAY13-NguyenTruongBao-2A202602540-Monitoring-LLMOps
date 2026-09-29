@@ -8,8 +8,8 @@
 - **MSSV:** 2A202602540
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/zewolkt3939/K4-L3-DAY13-NguyenTruongBao-2A202602540-Monitoring-LLMOps.git
-- **Commit SHA cuối:** 7ff0aac
-- **Challenge ID:** (Sẽ cập nhật khi nhận file config/challenge.json từ Lab Coach)
+- **Commit SHA cuối:** 
+- **Challenge ID:** day13-k4-l3a-monitoring-llmops-v1
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602540`
 
 ## 2. Evidence index
@@ -81,31 +81,50 @@
 
 ## 7. Điều tra challenge
 
-- **Challenge ID:**
-- **Khoảng thời gian điều tra:**
-- **Triệu chứng từ metrics:**
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
+- **Khoảng thời gian điều tra:** 2026-09-29 09:51:00 UTC - 09:51:30 UTC
+- **Triệu chứng từ metrics:** Latency P95 tăng vọt từ baseline 151ms lên 2,652ms (+1,656%), độ trễ ghi nhận phía client đo được từ 5,320ms đến 13,290ms khi chạy ở mức concurrency = 5. Toàn bộ 5/5 query của challenge đều vượt ngưỡng `latency_threshold_ms: 2000` và vi phạm SLO. Tỷ lệ lỗi (error rate) vẫn ở mức 0.0%, chất lượng phản hồi không đổi, nhưng hệ thống bị suy giảm hiệu năng nghiêm trọng do độ trễ quá cao.
 - **Log line và correlation ID liên quan:**
+  - Request điển hình: `correlation_id: req-c80160d2` (cùng các request trong đợt tải: `req-bc8a70df`, `req-f4582529`, `req-35982250`, `req-f7f5afa4`).
+  - Log `response_sent`:
+    ```json
+    {"service": "api", "latency_ms": 2652, "ttft_ms": 50, "tokens_in": 32, "tokens_out": 128, "cost_usd": 0.002016, "quality_score": 0.8, "tool_name": "retrieval", "tool_success": true, "event": "response_sent", "env": "dev", "user_id_hash": "138341daeeaa", "correlation_id": "req-c80160d2", "feature": "monitoring", "session_id": "k4-l3a-challenge-s01", "model": "claude-sonnet-4-5", "level": "info", "ts": "2026-09-29T09:51:18.201844Z"}
+    ```
 - **Trace ID và span gây ảnh hưởng:**
-- **Root cause:**
+  - Trace ID / Correlation ID: `req-c80160d2`
+  - Root observation: `lab-agent-run` (thời gian thực thi tổng: 2,652ms)
+  - Span con `retrieval` (loại `retriever`): Thời gian thực thi là **2,502ms**, chiếm tới **94.3%** tổng thời gian request.
+  - Span con `generation` (loại `generation`): Thời gian thực thi chỉ **150ms** (5.7%), TTFT là **50ms**.
+- **Root cause:** Bước truy xuất tài liệu vector store (`retrieve()` trong `app/mock_rag.py`) bị suy thoái hiệu năng nghiêm trọng do sự cố `rag_slow` (mô phỏng vector store bị quá tải hoặc nghẽn kết nối mạng), gây ra độ trễ nhân tạo 2.5 giây. Khâu gọi LLM sinh văn bản hoàn toàn bình thường.
 - **Fix action:**
+  1. Tắt sự cố mô phỏng bằng lệnh `python scripts/inject_incident.py --disable`.
+  2. Bổ sung cơ chế caching cho các câu truy vấn retrieval phổ biến và thiết lập connection pooling cho vector database.
 - **Preventive measure:**
+  1. Thiết lập giới hạn hard timeout cho bước retrieval là 500ms: nếu vector search quá 500ms thì fallback sang keyword search hoặc trả lời bằng kiến thức nền mà không làm gián đoạn/treo toàn bộ request của người dùng.
+  2. Triển khai Circuit Breaker cho module retrieval và cấu hình alert `high_latency_p95` (P95 > 3000ms duy trì 5 phút) để cảnh báo sớm cho đội ngũ On-call.
 
 ## 8. Giải thích và tự đánh giá
 
-- **Một quyết định kỹ thuật quan trọng và lý do:**
-- **Một lỗi/blocker đã gặp:**
-- **Cách tìm nguyên nhân và xử lý:**
+- **Một quyết định kỹ thuật quan trọng và lý do:** Đăng ký processor `scrub_event` vào chuỗi processor của structlog ngay **trước** `JsonlFileProcessor` và `JSONRenderer`. Quyết định này đảm bảo dữ liệu PII được làm sạch ở mức gốc (source of truth) trước khi ghi xuống file log đĩa hoặc stdout, tránh tình trạng "lộ PII rồi mới che" hoặc che thiếu sót.
+- **Một lỗi/blocker đã gặp:** Gặp lỗi `[WinError 10048]` (cổng 8000 bị chiếm dụng bởi tiến trình chạy nền cũ) và `PermissionError` với thư mục tạm mặc định của pytest trên hệ điều hành Windows.
+- **Cách tìm nguyên nhân và xử lý:** Dùng PowerShell `Get-NetTCPConnection` để tìm PID chiếm cổng 8000 và dừng tiến trình bằng `Stop-Process`; cấu hình `pytest.ini` với `--basetemp=.pytest_tmp` và thêm vào `.gitignore` để kiểm thử pytest hoạt động ổn định trên môi trường Windows.
 - **Cách hiểu luồng Metrics → Logs → Traces:**
+  - Metrics là "hồi chuông cảnh báo" (triệu chứng + thời gian): cho biết P95 latency tăng vọt lúc nào.
+  - Logs là "danh sách nạn nhân" (request cụ thể): dùng bộ lọc thời gian và feature để tìm ra các request bị chậm và trích xuất `correlation_id`.
+  - Traces là "khám nghiệm chi tiết" (nguyên nhân gốc rễ): dùng `correlation_id` mở Waterfall view trên Langfuse để biết chính xác span `retrieval` là nguyên nhân, loại trừ span `generation`.
 - **Vai trò của prompt version, token/cost, SLO hoặc rollback trong vận hành LLM:**
-- **Điều quan trọng nhất đã học:**
-- **Hạn chế hoặc phần chưa hoàn thành, nếu có:**
+  - Prompt versioning & Rollback: Đảm bảo có thể kiểm soát và quay xe tức thì khi prompt mới gây ảo giác, tăng latency hoặc bùng nổ token/chi phí.
+  - Token & Cost monitoring: Ngăn chặn hiện tượng cạn kiệt ngân sách do prompt lặp hoặc input/output quá dài.
+  - SLO: Đặt ra ranh giới dịch vụ rõ ràng giữa trải nghiệm khách hàng và chi phí vận hành.
+- **Điều quan trọng nhất đã học:** Nắm vững quy trình Observability chuẩn chỉ trong LLMOps: không điều tra theo cảm tính mà luôn đi theo chuỗi bằng chứng xác thực Metrics $\rightarrow$ Logs $\rightarrow$ Traces.
+- **Hạn chế hoặc phần chưa hoàn thành, nếu có:** Các metric hiện đang lưu trữ in-memory và tính toán từ file log JSONL local; trong môi trường production quy mô lớn, nên đẩy metric lên Prometheus/Grafana và log lên Elasticsearch/Loki.
 
 ## 9. Checklist trước khi nộp
 
-- [ ] Kết quả và evidence thuộc commit SHA cuối.
-- [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace.
-- [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [ ] Repository chạy lại được theo README.
-- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
-- [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
+- [x] Kết quả và evidence thuộc commit SHA cuối.
+- [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
+- [x] Incident evidence nối đúng metric → log → trace.
+- [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
+- [x] Repository chạy lại được theo README.
+- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [x] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.

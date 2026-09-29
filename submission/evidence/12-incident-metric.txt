@@ -1,0 +1,20 @@
+=== INCIDENT METRIC EVIDENCE (CHALLENGE: day13-k4-l3a-monitoring-llmops-v1) ===
+
+[INCIDENT OVERVIEW]
+Challenge ID:        day13-k4-l3a-monitoring-llmops-v1
+Incident Scenario:   rag_slow (Simulated vector store degradation)
+Time Window:         2026-09-29 09:51:00 UTC - 09:51:30 UTC
+Affected Feature:    monitoring
+
+[METRIC IMPACT SNAPSHOT]
+- Metric Symptom:    Massive Tail Latency Spike on /chat API
+- Baseline Latency:  P95 = 151.0 ms | TTFT P95 = 50.0 ms
+- Incident Latency:  P95 = 2,652.0 ms (+1,656% surge)
+- Client Latency:    5,320.9ms - 13,290.2ms (with concurrency = 5)
+- SLO Threshold:     2,000 ms (BREACHED - 100% of challenge requests exceeded threshold)
+- Error Rate:        0.0% (Requests succeeded but suffered severe latency penalty)
+- Tokens & Cost:     Tokens In = 515, Out = 1,921 | Total Cost = $0.0304 (Normal)
+
+[ALERT STATUS]
+- high_latency_p95:  [TRIGGERED / ALERT] (P95 latency 2652ms > threshold 2000ms)
+- high_error_rate:   [NORMAL] (Error rate = 0.0%)

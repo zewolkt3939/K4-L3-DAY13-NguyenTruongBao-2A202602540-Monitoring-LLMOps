@@ -1,0 +1,49 @@
+=== INCIDENT LOG EVIDENCE (data/logs.jsonl) ===
+
+[ISOLATED ABNORMAL REQUEST]
+Correlation ID:  req-c80160d2
+User ID Hash:    138341daeeaa
+Feature:         monitoring
+Session ID:      k4-l3a-challenge-s01
+
+[REQUEST_RECEIVED EVENT]
+{
+  "service": "api",
+  "payload": {
+    "message_preview": "Explain why metrics traces and logs work together."
+  },
+  "event": "request_received",
+  "env": "dev",
+  "user_id_hash": "138341daeeaa",
+  "correlation_id": "req-c80160d2",
+  "feature": "monitoring",
+  "session_id": "k4-l3a-challenge-s01",
+  "model": "claude-sonnet-4-5",
+  "level": "info",
+  "ts": "2026-09-29T09:51:15.549210Z"
+}
+
+[RESPONSE_SENT EVENT - ABNORMAL LATENCY]
+{
+  "service": "api",
+  "latency_ms": 2652,
+  "ttft_ms": 50,
+  "tokens_in": 32,
+  "tokens_out": 128,
+  "cost_usd": 0.002016,
+  "quality_score": 0.8,
+  "tool_name": "retrieval",
+  "tool_success": true,
+  "payload": {
+    "answer_preview": "Starter answer. You should improve this output logic and add better quality chec..."
+  },
+  "event": "response_sent",
+  "env": "dev",
+  "user_id_hash": "138341daeeaa",
+  "correlation_id": "req-c80160d2",
+  "feature": "monitoring",
+  "session_id": "k4-l3a-challenge-s01",
+  "model": "claude-sonnet-4-5",
+  "level": "info",
+  "ts": "2026-09-29T09:51:18.201844Z"
+}

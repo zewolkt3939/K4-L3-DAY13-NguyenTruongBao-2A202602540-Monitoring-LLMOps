@@ -1,0 +1,31 @@
+=== INCIDENT TRACE WATERFALL EVIDENCE (Langfuse Trace Waterfall) ===
+
+Trace ID / Correlation ID: req-c80160d2
+Project:                   day13-k4-l3a-2A202602540
+Environment:               dev
+Overall Status:            SUCCESS (200 OK)
+Total Trace Duration:      2,652 ms
+
+============================== SPAN WATERFALL BREAKDOWN ==============================
+[Span 1: Root]  lab-agent-run (type: agent)
+                Duration: 2,652 ms  |  Latency: 100.0% of total
+                Metadata: correlation_id=req-c80160d2, feature=monitoring, model=claude-sonnet-4-5
+                |
+                +---> [Span 2: Child] retrieval (type: retriever)
+                |                     Duration: 2,502 ms (94.3% OF TOTAL REQUEST TIME)
+                |                     Status:   SUCCESS (Slow)
+                |                     Metadata: query_preview="Explain why metrics traces..."
+                |                     ==> [ROOT CAUSE IDENTIFIED]: Vector store retrieval latency spike
+                |
+                +---> [Span 3: Child] generation (type: generation)
+                                      Duration: 150 ms (5.7% of total request time)
+                                      Status:   SUCCESS
+                                      Usage:    input=32 tokens, output=128 tokens, total=160
+                                      Cost:     $0.002016 USD
+                                      Prompt:   day13-chat (version: 1, label: production)
+
+================================ DIAGNOSTIC CONCLUSION ================================
+- Root Cause: Span 'retrieval' contributed 2,502 ms (94.3%) to the overall 2,652 ms request.
+  The LLM generation span performed normally (150 ms, TTFT = 50 ms).
+- Fix Action: Disabled 'rag_slow' incident; configured retrieval circuit breaker & query caching.
+- Preventive Measure: Bound retriever timeout to 500ms; alert high_latency_p95 configured.
